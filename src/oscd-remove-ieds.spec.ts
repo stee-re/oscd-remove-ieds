@@ -2,6 +2,7 @@ import { expect, fixture, html } from '@open-wc/testing';
 import { LitElement } from 'lit';
 
 import OscdRemoveIEDs from './oscd-remove-ieds.js';
+import type { OscdSelectionList } from '@omicronenergy/oscd-ui/selection-list/OscdSelectionList.js';
 import { testDocs, parseDoc } from './oscd-remove-ieds.testfiles.js';
 
 customElements.define('oscd-remove-ieds', OscdRemoveIEDs);
@@ -39,7 +40,7 @@ describe('oscd-remove-ieds', () => {
     it('lists all IEDs from the document', () => {
       const selectionList = element.shadowRoot!.querySelector(
         '#selection-list',
-      ) as HTMLElement & { items: { headline: string }[] };
+      ) as OscdSelectionList;
       expect(selectionList).to.exist;
 
       const iedNames = getIedNames(doc);
@@ -51,9 +52,7 @@ describe('oscd-remove-ieds', () => {
     it('includes IED description in list items', () => {
       const selectionList = element.shadowRoot!.querySelector(
         '#selection-list',
-      ) as HTMLElement & {
-        items: { headline: string; supportingText: string }[];
-      };
+      ) as OscdSelectionList;
 
       const pubItem = selectionList.items.find(item =>
         item.headline.includes('PUB_A'),
@@ -66,7 +65,8 @@ describe('oscd-remove-ieds', () => {
     });
 
     it('renders Close and Remove IEDs buttons', () => {
-      const buttons = element.shadowRoot!.querySelectorAll('md-text-button');
+      const buttons =
+        element.shadowRoot!.querySelectorAll('oscd-text-button');
       const buttonLabels = Array.from(buttons).map(
         btn => btn.textContent?.trim(),
       );
@@ -80,10 +80,9 @@ describe('oscd-remove-ieds', () => {
         editEvents.push(e);
       });
 
-      // Directly test removeIEDs by mocking the selection list
       const selectionList = element.shadowRoot!.querySelector(
         '#selection-list',
-      ) as HTMLElement & { selectedElements: Element[] };
+      ) as OscdSelectionList;
       const iedToRemove = doc.querySelector('IED[name="PUB_A"]')!;
 
       // Override selectedElements to simulate user selection
@@ -110,9 +109,7 @@ describe('oscd-remove-ieds', () => {
     it('lists the single IED', () => {
       const selectionList = element.shadowRoot!.querySelector(
         '#selection-list',
-      ) as HTMLElement & {
-        items: { headline: string; supportingText: string }[];
-      };
+      ) as OscdSelectionList;
 
       expect(selectionList.items).to.have.lengthOf(1);
       expect(selectionList.items[0].headline).to.contain('IED1');
@@ -134,7 +131,7 @@ describe('oscd-remove-ieds', () => {
     it('renders the dialog with an empty selection list', () => {
       const selectionList = element.shadowRoot!.querySelector(
         '#selection-list',
-      ) as HTMLElement & { items: { headline: string }[] };
+      ) as OscdSelectionList;
 
       expect(selectionList).to.exist;
       expect(selectionList.items).to.have.lengthOf(0);
@@ -145,7 +142,10 @@ describe('oscd-remove-ieds', () => {
     it('updates when editCount changes', async () => {
       doc = parseDoc(testDocs.multipleIEDs);
       element = await fixture(
-        html`<oscd-remove-ieds .doc=${doc} .editCount=${0}></oscd-remove-ieds>`,
+        html`<oscd-remove-ieds
+          .doc=${doc}
+          .editCount=${0}
+        ></oscd-remove-ieds>`,
       );
       await element.updateComplete;
 

@@ -1,19 +1,15 @@
 import { css, html, LitElement } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 
-import '@material/web/button/text-button';
-import '@material/web/dialog/dialog';
-import { Dialog } from '@material/web/dialog/internal/dialog';
-
-import '@openenergytools/filterable-lists/dist/selection-list.js';
-import type {
-  SelectionList,
-  SelectItem,
-} from '@openenergytools/filterable-lists/dist/selection-list.js';
+import { ScopedElementsMixin } from '@open-wc/scoped-elements/lit-element.js';
+import { OscdDialog } from '@omicronenergy/oscd-ui/dialog/OscdDialog.js';
+import { OscdTextButton } from '@omicronenergy/oscd-ui/button/OscdTextButton.js';
+import {
+  OscdSelectionList,
+  type SelectItem,
+} from '@omicronenergy/oscd-ui/selection-list/OscdSelectionList.js';
 
 import { removeIED } from '@openscd/scl-lib';
-import { MdOutlinedTextField } from '@material/web/textfield/outlined-text-field';
-import { MdCheckbox } from '@material/web/checkbox/checkbox';
 import { newEditEventV2 } from '@openscd/oscd-api/utils.js';
 
 function getIedDescription(ied: Element): {
@@ -57,8 +53,14 @@ function getIedDescription(ied: Element): {
   return { firstLine, secondLine };
 }
 
-/** An editor [[`plugin`]] to import IEDs from SCL files */
-export default class OscdRemoveIEDs extends LitElement {
+/** An editor [[`plugin`]] to remove IEDs from SCL files */
+export default class OscdRemoveIEDs extends ScopedElementsMixin(LitElement) {
+  static scopedElements = {
+    'oscd-dialog': OscdDialog,
+    'oscd-text-button': OscdTextButton,
+    'oscd-selection-list': OscdSelectionList,
+  };
+
   /** The document being edited as provided to plugins by [[`OpenSCD`]]. */
   @property({ attribute: false })
   doc!: XMLDocument;
@@ -70,11 +72,9 @@ export default class OscdRemoveIEDs extends LitElement {
   @state()
   items: SelectItem[] = [];
 
-  @query('input') input!: HTMLInputElement;
+  @query('#selection-dialog') dialogUI!: OscdDialog;
 
-  @query('#selection-dialog') dialogUI!: Dialog;
-
-  @query('#selection-list') selectionList!: SelectionList;
+  @query('#selection-list') selectionList!: OscdSelectionList;
 
   async run() {
     this.dialogUI.show();
@@ -87,36 +87,21 @@ export default class OscdRemoveIEDs extends LitElement {
       this.dispatchEvent(newEditEventV2(removeIED({ node: ied })));
     }
 
-    // TODO: Slightly dubious way to clear out selections
     this.clearSelection();
   }
 
   clearSelection(): void {
     if (this.selectionList) {
-      (
-        Array.from(
-          this.selectionList.shadowRoot!.querySelectorAll(
-            'md-list.listitems md-list-item md-checkbox',
-          ),
-        ) as MdCheckbox[]
-      ).forEach((cb): void => {
-        if (cb.checked) {
-          cb.checked = false;
-          cb.dispatchEvent(new Event('change'));
-          cb.requestUpdate();
-        }
-      });
-
-      const searchField = (this.selectionList.shadowRoot!.querySelector(
-        'md-outlined-text-field[placeholder="search"]',
-      ) as MdOutlinedTextField)!;
-      searchField.value = '';
-      searchField.dispatchEvent(new Event('input'));
+      this.selectionList.items = this.selectionList.items.map(item => ({
+        ...item,
+        selected: false,
+      }));
+      this.selectionList.searchValue = '';
     }
   }
 
   render() {
-    return html`<md-dialog
+    return html`<oscd-dialog
       id="selection-dialog"
       @cancel=${(event: Event) => {
         event.preventDefault();
@@ -124,8 +109,9 @@ export default class OscdRemoveIEDs extends LitElement {
       }}
     >
       <form slot="content" id="selection" method="dialog">
-        <selection-list
+        <oscd-selection-list
           id="selection-list"
+          multiselect
           .items=${Array.from(this.doc?.querySelectorAll('IED') ?? []).map(
             ied => {
               const { firstLine, secondLine } = getIedDescription(ied);
@@ -139,34 +125,28 @@ export default class OscdRemoveIEDs extends LitElement {
             },
           )}
           filterable
-        ></selection-list>
+        ></oscd-selection-list>
       </form>
       <div slot="actions">
-        <md-text-button
+        <oscd-text-button
           @click=${() => {
             this.dialogUI.close();
             this.clearSelection();
           }}
-          >Close</md-text-button
+          >Close</oscd-text-button
         >
-        <md-text-button
+        <oscd-text-button
           @click="${() => {
             this.removeIEDs();
           }}"
           form="selection"
-          >Remove IEDs</md-text-button
+          >Remove IEDs</oscd-text-button
         >
-      </div></md-dialog
+      </div></oscd-dialog
     >`;
   }
 
   static styles = css`
-    input {
-      width: 0;
-      height: 0;
-      opacity: 0;
-    }
-
     form {
       padding: 10px;
     }
