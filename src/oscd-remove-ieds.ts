@@ -1,4 +1,3 @@
-/* eslint-disable import/no-extraneous-dependencies */
 import { css, html, LitElement } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 
@@ -12,10 +11,10 @@ import type {
   SelectItem,
 } from '@openenergytools/filterable-lists/dist/selection-list.js';
 
-import { newEditEvent } from '@openscd/open-scd-core';
-import { removeIED } from '@openenergytools/scl-lib';
+import { removeIED } from '@openscd/scl-lib';
 import { MdOutlinedTextField } from '@material/web/textfield/outlined-text-field';
 import { MdCheckbox } from '@material/web/checkbox/checkbox';
+import { newEditEventV2 } from '@openscd/oscd-api/utils.js';
 
 function getIedDescription(ied: Element): {
   firstLine: string;
@@ -59,7 +58,7 @@ function getIedDescription(ied: Element): {
 }
 
 /** An editor [[`plugin`]] to import IEDs from SCL files */
-export default class RemoveIEDsPlugin extends LitElement {
+export default class OscdRemoveIEDs extends LitElement {
   /** The document being edited as provided to plugins by [[`OpenSCD`]]. */
   @property({ attribute: false })
   doc!: XMLDocument;
@@ -85,7 +84,7 @@ export default class RemoveIEDsPlugin extends LitElement {
     const ieds = this.selectionList.selectedElements;
 
     for await (const ied of ieds) {
-      this.dispatchEvent(newEditEvent(removeIED({ node: ied })));
+      this.dispatchEvent(newEditEventV2(removeIED({ node: ied })));
     }
 
     // TODO: Slightly dubious way to clear out selections
@@ -102,7 +101,6 @@ export default class RemoveIEDsPlugin extends LitElement {
         ) as MdCheckbox[]
       ).forEach((cb): void => {
         if (cb.checked) {
-          // eslint-disable-next-line no-param-reassign
           cb.checked = false;
           cb.dispatchEvent(new Event('change'));
           cb.requestUpdate();
